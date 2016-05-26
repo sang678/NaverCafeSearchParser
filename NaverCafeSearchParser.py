@@ -11,6 +11,7 @@ class NaverCafeSearchParser :
     nsession = NaverSession()
     isLoginSuccess = False
     boardList = None;
+    processedMaxArticleNumber = None;
     
     def searchCafe(self,clubId, searchWord):
         request = urllib2.Request("http://cafe.naver.com/ArticleSearchList.nhn?search.clubid="+clubId+"&search.searchBy=0&search.query="+urllib.quote(searchWord))
@@ -46,8 +47,20 @@ class NaverCafeSearchParser :
             #nsession.logout()
         
     def parseBoardListContent(self) :
+        i=0
         for link in self.boardList.select(".article-board")[1].select('a[href^="/ArticleRead.nhn?"]') :
-            request = urllib2.Request("http://cafe.naver.com/"+link.get("href"))
+
+            href = link.get("href");
+            articleIdx = href.find("articleid=")
+            articleNumber = href[articleIdx+10:href.find("&",articleIdx)]
+
+            if self.processedMaxArticleNumber > articleNumber :
+                break
+            
+            
+                        
+            
+            request = urllib2.Request("http://cafe.naver.com/"+href)
             socket = urllib2.urlopen(request)
             html = socket.read()       
             soup = BeautifulSoup(html,"lxml", from_encoding="EUC-KR")
@@ -59,6 +72,9 @@ class NaverCafeSearchParser :
                 print soup.select(".tit-box > div > table > tr > td")[0].get_text()
                 print price_info[0].span.get_text()
 
+            if self.processedMaxArticleNumber < articleNumber:
+                self.processedMaxArticleNumber = articleNumber
+           
     def naverLogin(self,naverId, naverPw):
         if self.nsession.login(naverId, naverPw,False):
             self.isLoginSuccess = True
@@ -68,8 +84,9 @@ class NaverCafeSearchParser :
 
     def naverLogout(self) :
         self.nsession.logout()
+        
 
 a = NaverCafeSearchParser()
-a.naverLogin(naverId, naverPw)
+a.naverLogin("myloginid","tkdrmsdl1!")
 a.parseBoardList("http://cafe.naver.com/joonggonara","27ÀÎÄ¡")
 a.parseBoardListContent();
